@@ -172,7 +172,9 @@ class LLVMEvaluator {
         };
         FunctionType *FT = FunctionType::get(voidTy, ParamTys, false);
         Function *F = Function::Create(FT, Function::ExternalLinkage, uniqueName + "_func", TheModule.get());
+#if (LLVM_VERSION_MAJOR < 5)
         F->addAttribute(llvm::AttributeSet::FunctionIndex, llvm::Attribute::AlwaysInline);
+#endif
         {
             // label the function with names
             const char *names[] = {"outputPointer", "dataBlock", "indirectIndex"};
