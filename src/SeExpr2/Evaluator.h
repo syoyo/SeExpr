@@ -20,7 +20,6 @@
 #include "VarBlock.h"
 
 #ifdef SEEXPR_ENABLE_LLVM
-#include <llvm/Config/llvm-config.h>
 #include <llvm/Support/Compiler.h>
 #endif
 
@@ -93,7 +92,7 @@ class LLVMEvaluator {
     }
 
     void debugPrint() {
-        // TheModule->print(llvm::errs(), nullptr);
+        // TheModule->dump();
     }
 
     bool prepLLVM(ExprNode *parseTree, ExprType desiredReturnType) {
@@ -173,9 +172,7 @@ class LLVMEvaluator {
         };
         FunctionType *FT = FunctionType::get(voidTy, ParamTys, false);
         Function *F = Function::Create(FT, Function::ExternalLinkage, uniqueName + "_func", TheModule.get());
-#if LLVM_VERSION_MAJOR > 4
-        F->addAttribute(llvm::AttributeList::FunctionIndex, llvm::Attribute::AlwaysInline);
-#else
+#if (LLVM_VERSION_MAJOR < 5)
         F->addAttribute(llvm::AttributeSet::FunctionIndex, llvm::Attribute::AlwaysInline);
 #endif
         {
@@ -293,16 +290,14 @@ class LLVMEvaluator {
         }
 
         if (Expression::debugging) {
-            #ifdef DEBUG
             std::cerr << "Pre verified LLVM byte code " << std::endl;
-            TheModule->print(llvm::errs(), nullptr);
-            #endif
+            TheModule->dump();
         }
 
         // TODO: Find out if there is a new way to veirfy
         // if (verifyModule(*TheModule)) {
         //     std::cerr << "Logic error in code generation of LLVM alert developers" << std::endl;
-        //     TheModule->print(llvm::errs(), nullptr);
+        //     TheModule->dump();
         // }
         Module *altModule = TheModule.get();
         std::string ErrStr;
@@ -368,10 +363,8 @@ class LLVMEvaluator {
         }
 
         if (Expression::debugging) {
-            #ifdef DEBUG
             std::cerr << "Pre verified LLVM byte code " << std::endl;
-            altModule->print(llvm::errs(), nullptr);
-            #endif
+            altModule->dump();
         }
 
         return true;
