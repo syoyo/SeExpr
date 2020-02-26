@@ -33,7 +33,8 @@ find_program(FLEX_EXE flex)
 find_program(SED_EXE sed)
 
 # TODO use recent cmake to use FindFlex FindBison
-if ((BISON_EXE STREQUAL "BISON_EXE-NOTFOUND") OR
+if (ANDROID OR
+    (BISON_EXE STREQUAL "BISON_EXE-NOTFOUND") OR
     (FLEX_EXE STREQUAL "FLEX_EXE-NOTFOUND") OR
     (SED_EXE STREQUAL "SED_EXE-NOTFOUND"))
     # don't have flex/bison/sed, use pregenerated versions
@@ -46,28 +47,28 @@ else()
         ARGS "-oExprParserLexIn.cpp" "${CMAKE_CURRENT_SOURCE_DIR}/ExprParserLex.l"
         OUTPUT ExprParserLexIn.cpp
         DEPENDS ExprParserLex.l)
-    
+
     add_custom_command(
         SOURCE "ExprParserLexIn.cpp"
         COMMAND "sed"
         ARGS -e "'s/SeExprwrap(n)/SeExprwrap()/g'" -e "'s/yy/SeExpr2/g'" -e "'s/YY/SeExprYY/g'"  ExprParserLexIn.cpp | tee ExprParserLex.cpp ${CMAKE_CURRENT_SOURCE_DIR}/generated/ExprParserLex.cpp > /dev/null
         OUTPUT ExprParserLex.cpp
         DEPENDS ExprParserLexIn.cpp)
-    
+
     add_custom_command(
         SOURCE "ExprParser.y"
         COMMAND "bison"
         ARGS "--defines" "--verbose" "--fixed-output-files" "-p" "SeExpr2" "${CMAKE_CURRENT_SOURCE_DIR}/ExprParser.y"
         OUTPUT y.tab.c y.tab.h
         DEPENDS ExprParser.y)
-    
+
     add_custom_command(
         SOURCE "y.tab.h"
         COMMAND "sed"
         ARGS -e "'s/yy/SeExpr2/g'" -e "'s/YY/SeExprYY/g'" y.tab.h | tee  ExprParser.tab.h ${CMAKE_CURRENT_SOURCE_DIR}/generated/ExprParser.tab.h > /dev/null
         OUTPUT ExprParser.tab.h
         DEPENDS y.tab.h)
-    
+
     add_custom_command(
         SOURCE "y.tab.c"
         COMMAND "sed"
@@ -84,7 +85,7 @@ endif()
 file(GLOB llvm_cpp "*.cpp")
 if (NOT WIN32)
     add_library(SeExpr2 SHARED ${io_cpp} ${core_cpp} ${parser_cpp} ${llvm_cpp})
-    target_link_libraries(SeExpr2 "dl" "pthread")
+    target_link_libraries(SeExpr2 ${CMAKE_DL_LIBS} Threads::Threads)
 else()
     add_library(SeExpr2 STATIC ${io_cpp} ${core_cpp} ${parser_cpp} ${llvm_cpp})
 endif()
@@ -116,7 +117,7 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 if (ENABLE_LLVM_BACKEND)
     if (NOT WIN32)
-        target_link_libraries(SeExpr2 ${LLVM_LIB} "dl" "pthread")
+        target_link_libraries(SeExpr2 ${LLVM_LIB} ${CMAKE_DL_LIBS} Threads::Threads)
     else ()
         target_link_libraries(SeExpr2 ${LLVM_LIB})
     endif ()
